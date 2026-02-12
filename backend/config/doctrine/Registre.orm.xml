@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Entity\Registre" table="registre">
+        <id name="id" type="integer" column="id">
+            <generator strategy="IDENTITY"/>
+        </id>
+
+        <field name="mambraTonga" type="integer" column="mambra_tonga"/>
+        <field name="mpamangy" type="integer" column="mpamangy"/>
+        <field name="nianatraImpito" type="integer" column="nianatra_impito"/>
+        <field name="asaSoa" type="integer" column="asa_soa"/>
+        <field name="fampianaranaBaiboly" type="integer" column="fampianarana_baiboly"/>
+        <field name="bokyTrakta" type="integer" column="boky_trakta"/>
+        <field name="semineraKaoferansa" type="integer" column="seminera_kaoferansa"/>
+        <field name="alasarona" type="integer" column="alasarona"/>
+        <field name="nahavitaFampTaratasy" type="integer" column="nahavita_famp_taratasy"/>
+        <field name="batisaTami" type="integer" column="batisa_tami"/>
+        <field name="fanatitra" type="float" column="fanatitra"/>
+        <field name="createdAt" type="date" column="created_at"/>
+        <field name="tongaRehetra" type="integer" column="tonga_rehetra" nullable="true"/>
+        <field name="asafi" type="integer" column="asafi"/>
+        <field name="nbrMambraKilasy" type="integer" column="nbr_mambra_kilasy" nullable="true"/>
+
+        <many-to-one field="kilasy" target-entity="Kilasy" inversed-by="registres">
+            <join-column name="kilasy_id" referenced-column-name="id" nullable="false"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>

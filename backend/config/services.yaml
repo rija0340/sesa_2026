@@ -1,0 +1,23 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # Repository services
+    App\Repository\KilasyRepositoryInterface: '@App\Repository\KilasyRepository'
+    App\Repository\RegistreRepositoryInterface: '@App\Repository\RegistreRepository'
+
+    # Model services
+    App\Service\KilasyService:
+        public: true
+
+    App\Service\RegistreService:
+        public: true

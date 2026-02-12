@@ -1,0 +1,69 @@
+# Dependencies
+/backend/vendor/
+/frontend/node_modules/
+
+# Environment specific files
+/backend/.env.local
+/backend/.env.local.php
+/backend/.env.*.local
+/frontend/.env.local
+/frontend/.env.*.local
+
+# Symfony specifics
+/backend/var/
+/backend/config/secrets/prod/
+/backend/public/bundles/
+
+# Frontend build
+/frontend/dist/
+/frontend/build/
+
+# Logs
+*.log
+/logs/
+/backend/var/log/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local configuration
+/config/local/
+/config/secrets/local/
+
+# Docker
+.docker/
+.dockerignore
+
+# Composer and PHP
+/composer.phar
+/vendor-bin/
+/backend/vendor-bin/
+
+# Runtime files
+/runtime/
+
+# IDE
+nbproject/
+.settings/
+
+# Backup files
+*~
+*.bak
+*.tmp
+
+# Development
+.php_cs.cache
+.phpunit.result.cache

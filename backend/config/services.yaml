@@ -14,10 +14,4 @@ services:
     # Repository services
     App\Repository\KilasyRepositoryInterface: '@App\Repository\KilasyRepository'
     App\Repository\RegistreRepositoryInterface: '@App\Repository\RegistreRepository'
-
-    # Model services
-    App\Service\KilasyService:
-        public: true
-
-    App\Service\RegistreService:
-        public: true
+    App\Repository\KilasyLasitraRepositoryInterface: '@App\Repository\KilasyLasitraRepository'

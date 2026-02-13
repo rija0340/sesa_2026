@@ -1,27 +1,50 @@
-* {
+/* ── Global styles ─────────────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  color: #0f172a;
-}
-
-.app {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  gap: 0.75rem;
-  padding: 2rem;
 }
 
-h1 {
-  margin: 0;
+/* Smooth page transitions */
+.mantine-AppShell-main {
+  transition: padding-left 300ms ease;
 }
 
-p {
-  margin: 0;
+/* Active nav link highlight */
+.mantine-NavLink-root[data-active] {
+  background: var(--mantine-primary-color-light);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mantine-color-default-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mantine-color-dimmed);
 }

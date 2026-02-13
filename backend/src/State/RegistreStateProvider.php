@@ -1,25 +1,20 @@
 <?php
 
-namespace App\DataPersister;
+namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\RegistreResource;
 use App\Entity\Registre;
 use App\Repository\RegistreRepositoryInterface;
-use App\Repository\KilasyRepositoryInterface;
 
-class RegistreDataPersister implements ProviderInterface
+class RegistreStateProvider implements ProviderInterface
 {
     private RegistreRepositoryInterface $registreRepository;
-    private KilasyRepositoryInterface $kilasyRepository;
 
-    public function __construct(
-        RegistreRepositoryInterface $registreRepository,
-        KilasyRepositoryInterface $kilasyRepository
-    ) {
+    public function __construct(RegistreRepositoryInterface $registreRepository)
+    {
         $this->registreRepository = $registreRepository;
-        $this->kilasyRepository = $kilasyRepository;
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -35,7 +30,7 @@ class RegistreDataPersister implements ProviderInterface
         return array_map([$this, 'transformEntityToResource'], $registres);
     }
 
-    public function transformEntityToResource(?Registre $registre): ?RegistreResource
+    private function transformEntityToResource(?Registre $registre): ?RegistreResource
     {
         if (!$registre) {
             return null;
@@ -61,34 +56,5 @@ class RegistreDataPersister implements ProviderInterface
         $resource->nbrMambraKilasy = $registre->getNbrMambraKilasy();
 
         return $resource;
-    }
-
-    public function transformResourceToEntity(RegistreResource $resource, ?Registre $entity = null): Registre
-    {
-        $entity = $entity ?? new Registre();
-        
-        $kilasy = $this->kilasyRepository->findById($resource->kilasyId);
-        if (!$kilasy) {
-            throw new \Exception("Classe introuvable avec l'ID: {$resource->kilasyId}");
-        }
-
-        $entity->setMambraTonga($resource->mambraTonga)
-               ->setMpamangy($resource->mpamangy)
-               ->setNianatraImpito($resource->nianatraImpito)
-               ->setAsaSoa($resource->asaSoa)
-               ->setFampianaranaBaiboly($resource->fampianaranaBaiboly)
-               ->setBokyTrakta($resource->bokyTrakta)
-               ->setCreatedAt($resource->createdAt)
-               ->setKilasy($kilasy)
-               ->setSemineraKaoferansa($resource->semineraKaoferansa)
-               ->setAlasarona($resource->alasarona)
-               ->setNahavitaFampTaratasy($resource->nahavitaFampTaratasy)
-               ->setBatisaTami($resource->batisaTami)
-               ->setFanatitra($resource->fanatitra)
-               ->setTongaRehetra($resource->tongaRehetra)
-               ->setAsafi($resource->asafi)
-               ->setNbrMambraKilasy($resource->nbrMambraKilasy);
-
-        return $entity;
     }
 }

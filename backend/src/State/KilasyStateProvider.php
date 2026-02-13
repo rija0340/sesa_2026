@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DataPersister;
+namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
@@ -9,17 +9,14 @@ use App\Entity\Kilasy;
 use App\Repository\KilasyRepositoryInterface;
 use App\Repository\KilasyLasitraRepositoryInterface;
 
-class KilasyDataPersister implements ProviderInterface
+class KilasyStateProvider implements ProviderInterface
 {
     private KilasyRepositoryInterface $kilasyRepository;
-    private KilasyLasitraRepositoryInterface $kilasyLasitraRepository;
 
     public function __construct(
-        KilasyRepositoryInterface $kilasyRepository,
-        KilasyLasitraRepositoryInterface $kilasyLasitraRepository
+        KilasyRepositoryInterface $kilasyRepository
     ) {
         $this->kilasyRepository = $kilasyRepository;
-        $this->kilasyLasitraRepository = $kilasyLasitraRepository;
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
@@ -35,7 +32,7 @@ class KilasyDataPersister implements ProviderInterface
         return array_map([$this, 'transformEntityToResource'], $kilasyList);
     }
 
-    public function transformEntityToResource(?Kilasy $kilasy): ?KilasyResource
+    private function transformEntityToResource(?Kilasy $kilasy): ?KilasyResource
     {
         if (!$kilasy) {
             return null;
@@ -53,24 +50,5 @@ class KilasyDataPersister implements ProviderInterface
         }
 
         return $resource;
-    }
-
-    public function transformResourceToEntity(KilasyResource $resource, ?Kilasy $entity = null): Kilasy
-    {
-        $entity = $entity ?? new Kilasy();
-        
-        $entity->setNom($resource->nom)
-               ->setDescription($resource->description)
-               ->setNbrMambra($resource->nbrMambra)
-               ->setNbrMambraUsed($resource->nbrMambraUsed);
-
-        if ($resource->kilasyLasitraId) {
-            $kilasyLasitra = $this->kilasyLasitraRepository->findById($resource->kilasyLasitraId);
-            if ($kilasyLasitra) {
-                $entity->setKilasyLasitra($kilasyLasitra);
-            }
-        }
-
-        return $entity;
     }
 }

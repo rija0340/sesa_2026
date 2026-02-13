@@ -14,26 +14,24 @@ use DateTimeInterface;
 #[ApiResource(
     operations: [
         new Get(
-            normalizationContext: ['groups' => ['registre:read']],
-            security: "is_granted('ROLE_USER')"
+            normalizationContext: ['groups' => ['registre:read']]
         ),
         new GetCollection(
-            normalizationContext: ['groups' => ['registre:read']],
-            security: "is_granted('ROLE_USER')"
+            normalizationContext: ['groups' => ['registre:read']]
         ),
         new Post(
             normalizationContext: ['groups' => ['registre:read']],
-            denormalizationContext: ['groups' => ['registre:write']],
-            security: "is_granted('ROLE_ADMIN')"
+            denormalizationContext: ['groups' => ['registre:write']]
         ),
         new Patch(
             normalizationContext: ['groups' => ['registre:read']],
-            denormalizationContext: ['groups' => ['registre:write']],
-            security: "is_granted('ROLE_ADMIN')"
+            denormalizationContext: ['groups' => ['registre:write']]
         ),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new Delete()
     ],
-    routePrefix: '/sekoly-sabata'
+    routePrefix: '/sekoly-sabata',
+    provider: \App\State\RegistreStateProvider::class,
+    processor: \App\State\RegistreStateProcessor::class
 )]
 class RegistreResource
 {
@@ -41,37 +39,37 @@ class RegistreResource
     public ?int $id = null;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $mambraTonga = 0;
+    public int $mambraTonga;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $mpamangy = 0;
+    public int $mpamangy;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $nianatraImpito = 0;
+    public int $nianatraImpito;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $asaSoa = 0;
+    public int $asaSoa;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $fampianaranaBaiboly = 0;
+    public int $fampianaranaBaiboly;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $bokyTrakta = 0;
+    public int $bokyTrakta;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $semineraKaoferansa = 0;
+    public int $semineraKaoferansa;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $alasarona = 0;
+    public int $alasarona;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $nahavitaFampTaratasy = 0;
+    public int $nahavitaFampTaratasy;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $batisaTami = 0;
+    public int $batisaTami;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public float $fanatitra = 0.0;
+    public float $fanatitra;
 
     #[Groups(['registre:read', 'registre:write'])]
     public DateTimeInterface $createdAt;
@@ -80,10 +78,10 @@ class RegistreResource
     public int $kilasyId;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $tongaRehetra = 0;
+    public int $tongaRehetra;
 
     #[Groups(['registre:read', 'registre:write'])]
-    public int $asafi = 0;
+    public int $asafi;
 
     #[Groups(['registre:read', 'registre:write'])]
     public ?int $nbrMambraKilasy = null;

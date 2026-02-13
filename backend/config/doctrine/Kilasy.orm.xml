@@ -15,7 +15,7 @@
         <field name="nbrMambraUsed" type="string" column="nbr_mambra_used" length="255"/>
 
         <many-to-one field="kilasyLasitra" target-entity="KilasyLasitra" inversed-by="kilasies">
-            <join-column name="kilasy_lasitra_id" referenced-column-name="id" nullable="false"/>
+            <join-column name="kilasy_lasitra_id" referenced-column-name="id" nullable="true"/>
         </many-to-one>
 
         <one-to-many field="registres" target-entity="Registre" mapped-by="kilasy" orphan-removal="true"/>

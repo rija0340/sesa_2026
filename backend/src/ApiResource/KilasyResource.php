@@ -13,26 +13,24 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new Get(
-            normalizationContext: ['groups' => ['kilasy:read']],
-            security: "is_granted('ROLE_USER')"
+            normalizationContext: ['groups' => ['kilasy:read']]
         ),
         new GetCollection(
-            normalizationContext: ['groups' => ['kilasy:read']],
-            security: "is_granted('ROLE_USER')"
+            normalizationContext: ['groups' => ['kilasy:read']]
         ),
         new Post(
             normalizationContext: ['groups' => ['kilasy:read']],
-            denormalizationContext: ['groups' => ['kilasy:write']],
-            security: "is_granted('ROLE_ADMIN')"
+            denormalizationContext: ['groups' => ['kilasy:write']]
         ),
         new Patch(
             normalizationContext: ['groups' => ['kilasy:read']],
-            denormalizationContext: ['groups' => ['kilasy:write']],
-            security: "is_granted('ROLE_ADMIN')"
+            denormalizationContext: ['groups' => ['kilasy:write']]
         ),
-        new Delete(security: "is_granted('ROLE_ADMIN')")
+        new Delete()
     ],
-    routePrefix: '/sekoly-sabata'
+    routePrefix: '/sekoly-sabata',
+    provider: \App\State\KilasyStateProvider::class,
+    processor: \App\State\KilasyStateProcessor::class
 )]
 class KilasyResource
 {

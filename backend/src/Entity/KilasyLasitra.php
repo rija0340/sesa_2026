@@ -57,6 +57,9 @@ class KilasyLasitra
         return $this;
     }
 
+    /**
+     * @return Collection<int, Kilasy>
+     */
     public function getKilasies(): Collection
     {
         return $this->kilasies;
@@ -75,6 +78,7 @@ class KilasyLasitra
     public function removeKilasy(Kilasy $kilasy): self
     {
         if ($this->kilasies->removeElement($kilasy)) {
+            // set the owning side to null (unless already changed)
             if ($kilasy->getKilasyLasitra() === $this) {
                 $kilasy->setKilasyLasitra(null);
             }

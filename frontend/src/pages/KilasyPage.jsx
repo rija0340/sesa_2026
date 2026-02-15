@@ -185,8 +185,8 @@ export default function KilasyPage() {
               <Table.Tr>
                 <Table.Th>Nom</Table.Th>
                 <Table.Th>Description</Table.Th>
-                <Table.Th>Membres</Table.Th>
-                <Table.Th>Source membres</Table.Th>
+                <Table.Th ta="center">Mambra (Custom)</Table.Th>
+                <Table.Th ta="center">Utilisé pour Stat</Table.Th>
                 <Table.Th style={{ width: 100 }}>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -199,15 +199,17 @@ export default function KilasyPage() {
                       {k.description || "—"}
                     </Text>
                   </Table.Td>
-                  <Table.Td>
-                    <Badge variant="light" color="indigo">
-                      {k.nbrMambra ?? "—"}
+                  <Table.Td ta="center">
+                    <Badge variant="outline" color="gray">
+                      {k.nbrMambra ?? "0"}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>
-                    <Badge variant="dot" color={k.nbrMambraUsed === "custom" ? "teal" : "gray"}>
-                      {k.nbrMambraUsed === "custom" ? "Manuel" : "Registre"}
-                    </Badge>
+                  <Table.Td ta="center">
+                    {k.nbrMambraUsed === "custom" ? (
+                      <Badge variant="filled" color="teal">Personnalisé</Badge>
+                    ) : (
+                      <Badge variant="filled" color="blue">Registre</Badge>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Group gap={4}>

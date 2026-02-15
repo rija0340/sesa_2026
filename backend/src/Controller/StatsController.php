@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/api/stats')]
+#[Route('/stats')]
 class StatsController extends AbstractController
 {
     private KilasyRepositoryInterface $kilasyRepository;
@@ -33,7 +33,7 @@ class StatsController extends AbstractController
         }
 
         $stats = $kilasy->getStatistiques();
-        
+
         return new JsonResponse([
             'kilasy' => [
                 'id' => $kilasy->getId(),
@@ -47,31 +47,48 @@ class StatsController extends AbstractController
     #[Route('/periode', name: 'stats_periode', methods: ['GET'])]
     public function getStatsPeriode(Request $request): JsonResponse
     {
-        $dateDebut = $request->query->get('date_debut');
-        $dateFin = $request->query->get('date_fin');
-        
-        if (!$dateDebut || !$dateFin) {
+        $dateDebutStr = $request->query->get('date_debut');
+        $dateFinStr = $request->query->get('date_fin');
+
+        if (!$dateDebutStr || !$dateFinStr) {
             return new JsonResponse(['error' => 'Les paramètres date_debut et date_fin sont requis'], 400);
         }
 
-        $dateDebut = new \DateTime($dateDebut);
-        $dateFin = new \DateTime($dateFin);
-        
+        try {
+            $dateDebut = new \DateTime($dateDebutStr);
+            $dateFin = new \DateTime($dateFinStr);
+            // Include the end date fully (end of day) if it's just a date
+            if (strlen($dateFinStr) <= 10) {
+                $dateFin->setTime(23, 59, 59);
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => 'Format de date invalide'], 400);
+        }
+
         $registres = $this->registreRepository->findAll();
-        
-        $registresPeriode = array_filter($registres, function($registre) use ($dateDebut, $dateFin) {
+
+        // Filter by date
+        $registresPeriode = array_filter($registres, function ($registre) use ($dateDebut, $dateFin) {
             $dateRegistre = $registre->getCreatedAt();
             return $dateRegistre >= $dateDebut && $dateRegistre <= $dateFin;
         });
 
+        // Calculate global stats
         $stats = $this->calculerStatistiquesCollectives($registresPeriode);
-        
+
+        // Prepare raw data for frontend matrix
+        $data = [];
+        foreach ($registresPeriode as $r) {
+            $data[] = $this->serializeRegistre($r);
+        }
+
         return new JsonResponse([
             'periode' => [
                 'du' => $dateDebut->format('Y-m-d'),
                 'au' => $dateFin->format('Y-m-d'),
             ],
-            'statistiques' => $stats
+            'statistiques' => $stats,
+            'data' => $data
         ]);
     }
 
@@ -83,25 +100,38 @@ class StatsController extends AbstractController
             return new JsonResponse(['error' => 'Classe non trouvée'], 404);
         }
 
-        $dateDebut = $request->query->get('date_debut');
-        $dateFin = $request->query->get('date_fin');
-        
-        if (!$dateDebut || !$dateFin) {
+        $dateDebutStr = $request->query->get('date_debut');
+        $dateFinStr = $request->query->get('date_fin');
+
+        if (!$dateDebutStr || !$dateFinStr) {
             return new JsonResponse(['error' => 'Les paramètres date_debut et date_fin sont requis'], 400);
         }
 
-        $dateDebut = new \DateTime($dateDebut);
-        $dateFin = new \DateTime($dateFin);
-        
+        try {
+            $dateDebut = new \DateTime($dateDebutStr);
+            $dateFin = new \DateTime($dateFinStr);
+            if (strlen($dateFinStr) <= 10) {
+                $dateFin->setTime(23, 59, 59);
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => 'Format de date invalide'], 400);
+        }
+
         $registres = $this->registreRepository->findByKilasyId($id);
-        
-        $registresPeriode = array_filter($registres, function($registre) use ($dateDebut, $dateFin) {
+
+        $registresPeriode = array_filter($registres, function ($registre) use ($dateDebut, $dateFin) {
             $dateRegistre = $registre->getCreatedAt();
             return $dateRegistre >= $dateDebut && $dateRegistre <= $dateFin;
         });
 
         $stats = $this->calculerStatistiquesCollectives($registresPeriode);
-        
+
+        // Prepare raw data
+        $data = [];
+        foreach ($registresPeriode as $r) {
+            $data[] = $this->serializeRegistre($r);
+        }
+
         return new JsonResponse([
             'kilasy' => [
                 'id' => $kilasy->getId(),
@@ -112,7 +142,8 @@ class StatsController extends AbstractController
                 'du' => $dateDebut->format('Y-m-d'),
                 'au' => $dateFin->format('Y-m-d'),
             ],
-            'statistiques' => $stats
+            'statistiques' => $stats,
+            'data' => $data
         ]);
     }
 
@@ -151,6 +182,30 @@ class StatsController extends AbstractController
             'moyenneApprentissage' => round($totalApprentissage / $totalRegistres, 2),
             'totalMembresTonga' => $totalMembresTonga,
             'totalNianatraImpito' => $totalNianatraImpito,
+        ];
+    }
+
+    private function serializeRegistre(Registre $r): array
+    {
+        return [
+            'id' => $r->getId(),
+            'date' => $r->getCreatedAt()->format('Y-m-d'),
+            'kilasy' => $r->getKilasy() ? $r->getKilasy()->getNom() : 'Inconnue',
+            'mambraTonga' => $r->getMambraTonga(),
+            'mpamangy' => $r->getMpamangy(),
+            'tongaRehetra' => $r->getTongaRehetra(),
+            'nianatraImpito' => $r->getNianatraImpito(),
+            'asafi' => $r->getAsafi(),
+            'asaSoa' => $r->getAsaSoa(),
+            'fampianaranaBaiboly' => $r->getFampianaranaBaiboly(),
+            'bokyTrakta' => $r->getBokyTrakta(),
+            'semineraKaoferansa' => $r->getSemineraKaoferansa(),
+            'alasarona' => $r->getAlasarona(),
+            'nahavitaFampTaratasy' => $r->getNahavitaFampTaratasy(),
+            'batisaTami' => $r->getBatisaTami(),
+            'fanatitra' => $r->getFanatitra(),
+            'pourcentTonga' => $r->getPourcentagePresence(),
+            'pourcentImpito' => $r->getPourcentageApprentissage(),
         ];
     }
 }

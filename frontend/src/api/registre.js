@@ -2,7 +2,7 @@ import { get, getJson, post, patch, del } from "./client";
 import { extractCollection } from "./normalize";
 
 const BASE = "/api/sekoly-sabata/registre_resources";
-const STATS = "/api/stats";
+const STATS = "/stats";
 
 // --- CRUD Registre ---
 

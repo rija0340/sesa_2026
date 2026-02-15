@@ -18,6 +18,8 @@ import {
   Tooltip,
   ScrollArea,
   SimpleGrid,
+  Stack,
+  Divider,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import useApi from "../hooks/useApi";
@@ -242,6 +244,20 @@ export default function RegistrePage() {
 
   const list = Array.isArray(registres) ? registres : [];
 
+  // Logic for summary recaps (last 5 dates)
+  const last5Dates = [...list]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .reduce((acc, curr) => {
+      const d = formatDate(curr.createdAt);
+      const existing = acc.find((x) => x.date === d);
+      if (existing) {
+        existing.count += 1;
+      } else if (acc.length < 5) {
+        acc.push({ date: d, count: 1 });
+      }
+      return acc;
+    }, []);
+
   return (
     <Box>
       <Group justify="space-between" mb="xl">
@@ -260,72 +276,132 @@ export default function RegistrePage() {
         </Alert>
       )}
 
-      <Paper shadow="sm" radius="md" withBorder>
-        {loading ? (
-          <Box py="xl" style={{ display: "flex", justifyContent: "center" }}>
-            <Loader />
-          </Box>
-        ) : list.length === 0 ? (
-          <Text ta="center" c="dimmed" py="xl">
-            Aucun registre trouvé. Cliquez sur « Nouveau registre » pour commencer.
-          </Text>
-        ) : (
-          <ScrollArea>
-            <Table striped highlightOnHover style={{ minWidth: 700 }}>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Date</Table.Th>
-                  <Table.Th>Classe</Table.Th>
-                  <Table.Th>Présents</Table.Th>
-                  <Table.Th>Visiteurs</Table.Th>
-                  <Table.Th>Apprenants</Table.Th>
-                  <Table.Th>Offrande</Table.Th>
-                  <Table.Th style={{ width: 120 }}>Actions</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {list.map((r) => (
-                  <Table.Tr key={r.id}>
-                    <Table.Td>{formatDate(r.createdAt)}</Table.Td>
-                    <Table.Td fw={500}>{getKilasyName(r.kilasyId)}</Table.Td>
-                    <Table.Td>
-                      <Badge variant="light" color="indigo">{r.mambraTonga}</Badge>
-                    </Table.Td>
-                    <Table.Td>{r.mpamangy}</Table.Td>
-                    <Table.Td>
-                      <Badge variant="light" color="teal">{r.nianatraImpito}</Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge variant="light" color="yellow">
-                        {Number(r.fanatitra).toLocaleString("fr-FR")} Ar
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap={4}>
-                        <Tooltip label="Détails">
-                          <ActionIcon variant="subtle" color="gray" onClick={() => handleView(r)}>
-                            <IconEye />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label="Modifier">
-                          <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(r)}>
-                            <IconEdit />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label="Supprimer">
-                          <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteClick(r)}>
-                            <IconTrash />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Group>
-                    </Table.Td>
+      <SimpleGrid cols={{ base: 1, md: 4 }} spacing="lg">
+        {/* ── Summary Column ─────────────────────────────────── */}
+        <Box style={{ gridColumn: "span 1" }}>
+          <Stack gap="lg">
+            <Paper shadow="sm" radius="md" p="md" withBorder>
+              <Title order={5} mb="md" c="green.8">
+                Info sur les 5 dernières dates
+              </Title>
+              <Text size="sm" mb="sm">
+                Classes totales : <strong>{kilasyList.length}</strong>
+              </Text>
+              <Table variant="unstyled" size="sm">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Date</Table.Th>
+                    <Table.Th align="right">Registres</Table.Th>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </ScrollArea>
-        )}
-      </Paper>
+                </Table.Thead>
+                <Table.Tbody>
+                  {last5Dates.length > 0 ? (
+                    last5Dates.map((item, idx) => (
+                      <Table.Tr key={idx}>
+                        <Table.Td>{item.date}</Table.Td>
+                        <Table.Td align="right">
+                          <Badge variant="light" color="green">
+                            {item.count}
+                          </Badge>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))
+                  ) : (
+                    <Table.Tr>
+                      <Table.Td colSpan={2}>
+                        <Text size="xs" c="dimmed" ta="center">
+                          Aucune donnée
+                        </Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  )}
+                </Table.Tbody>
+              </Table>
+            </Paper>
+
+            {/* Optional additional info card */}
+            <Paper shadow="sm" radius="md" p="md" withBorder bg="blue.0">
+              <Group gap="xs">
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--mantine-color-blue-filled)" }} />
+                <Text size="xs" fw={700} tt="uppercase">Astuce</Text>
+              </Group>
+              <Text size="xs" mt="xs">
+                Utilisez le bouton <strong>Détails</strong> (œil) pour voir l'ensemble des indicateurs saisis pour chaque classe.
+              </Text>
+            </Paper>
+          </Stack>
+        </Box>
+
+        {/* ── Main List Column ─────────────────────────────── */}
+        <Box style={{ gridColumn: "span 3" }}>
+          <Paper shadow="sm" radius="md" withBorder>
+            {loading ? (
+              <Box py="xl" style={{ display: "flex", justifyContent: "center" }}>
+                <Loader />
+              </Box>
+            ) : list.length === 0 ? (
+              <Text ta="center" c="dimmed" py="xl">
+                Aucun registre trouvé. Cliquez sur « Nouveau registre » pour commencer.
+              </Text>
+            ) : (
+              <ScrollArea>
+                <Table striped highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Date</Table.Th>
+                      <Table.Th>Classe</Table.Th>
+                      <Table.Th>Présents</Table.Th>
+                      <Table.Th>Visiteurs</Table.Th>
+                      <Table.Th>Apprenants</Table.Th>
+                      <Table.Th>Offrande</Table.Th>
+                      <Table.Th style={{ width: 120 }}>Actions</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {list.map((r) => (
+                      <Table.Tr key={r.id}>
+                        <Table.Td>{formatDate(r.createdAt)}</Table.Td>
+                        <Table.Td fw={500}>{getKilasyName(r.kilasyId)}</Table.Td>
+                        <Table.Td>
+                          <Badge variant="light" color="indigo">{r.mambraTonga}</Badge>
+                        </Table.Td>
+                        <Table.Td>{r.mpamangy}</Table.Td>
+                        <Table.Td>
+                          <Badge variant="light" color="teal">{r.nianatraImpito}</Badge>
+                        </Table.Td>
+                        <Table.Td>
+                          <Badge variant="light" color="yellow">
+                            {Number(r.fanatitra).toLocaleString("fr-FR")} Ar
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group gap={4}>
+                            <Tooltip label="Détails">
+                              <ActionIcon variant="subtle" color="gray" onClick={() => handleView(r)}>
+                                <IconEye />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Modifier">
+                              <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(r)}>
+                                <IconEdit />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Supprimer">
+                              <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteClick(r)}>
+                                <IconTrash />
+                              </ActionIcon>
+                            </Tooltip>
+                          </Group>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </ScrollArea>
+            )}
+          </Paper>
+        </Box>
+      </SimpleGrid>
 
       {/* ── Create / Edit Modal ──────────────────────────────── */}
       <Modal
@@ -339,32 +415,70 @@ export default function RegistrePage() {
           {formError && (
             <Alert color="red" mb="md" icon={<IconAlert />}>{formError}</Alert>
           )}
-          <Select
-            label="Classe"
-            placeholder="Choisir une classe"
-            required
-            mb="md"
-            data={kilasyOptions}
-            value={form.kilasyId ? String(form.kilasyId) : null}
-            onChange={(val) => updateField("kilasyId", val)}
-            searchable
-          />
-          <TextInput
-            label="Date"
-            type="date"
-            required
-            mb="md"
-            value={form.createdAt}
-            onChange={(e) => updateField("createdAt", e.target.value)}
-          />
-          <NumberInput
-            label="Nombre de membres de la classe"
-            placeholder="Optionnel (surcharge)"
-            mb="md"
-            min={0}
-            value={form.nbrMambraKilasy}
-            onChange={(val) => updateField("nbrMambraKilasy", val)}
-          />
+
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" align="flex-start">
+            <Box style={{ gridColumn: "span 2" }}>
+              <Select
+                label="Classe"
+                placeholder="Choisir une classe"
+                required
+                mb="md"
+                data={kilasyOptions}
+                value={form.kilasyId ? String(form.kilasyId) : null}
+                onChange={(val) => updateField("kilasyId", val)}
+                searchable
+              />
+              <TextInput
+                label="Date"
+                type="date"
+                required
+                mb="md"
+                value={form.createdAt}
+                onChange={(e) => updateField("createdAt", e.target.value)}
+              />
+              <NumberInput
+                label="Nombre de membres (surcharge)"
+                placeholder="Optionnel"
+                mb="md"
+                min={0}
+                value={form.nbrMambraKilasy}
+                onChange={(val) => updateField("nbrMambraKilasy", val)}
+              />
+            </Box>
+
+            <Box style={{ gridColumn: "span 1" }}>
+              <Paper shadow="xs" radius="md" p="sm" withBorder bg="gray.0">
+                <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb="xs">
+                  Info sur : {getKilasyName(form.kilasyId) || "—"}
+                </Text>
+                {form.kilasyId ? (() => {
+                  const k = kilasyList.find(x => String(x.id) === String(form.kilasyId));
+                  return (
+                    <Stack gap={4}>
+                      <Group justify="space-between">
+                        <Text size="xs">Type nbr membre :</Text>
+                        <Badge size="xs" variant="filled" color={k?.nbrMambraUsed === 'custom' ? 'teal' : 'blue'}>
+                          {k?.nbrMambraUsed === 'custom' ? 'Custom' : 'Registre'}
+                        </Badge>
+                      </Group>
+                      <Group justify="space-between">
+                        <Text size="xs">Membres (Custom) :</Text>
+                        <Text size="xs" fw={700}>{k?.nbrMambra ?? 0}</Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mt="xs" style={{ fontStyle: 'italic' }}>
+                        {k?.description || "Pas de description"}
+                      </Text>
+                    </Stack>
+                  );
+                })() : (
+                  <Text size="xs" c="dimmed" ta="center">Sélectionnez une classe</Text>
+                )}
+              </Paper>
+            </Box>
+          </SimpleGrid>
+
+          <Divider my="lg" label="Indicateurs de présence et activités" labelPosition="center" />
+
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {REGISTRE_FIELDS.map((field) => (
               <NumberInput

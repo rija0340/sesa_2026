@@ -2,16 +2,24 @@
 
 namespace App\Entity;
 
+use App\Domain\Exception\DomainValidationException;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 
 class Kilasy
 {
+    const NBR_MAMBRA_USED_REGISTRE = 'registre';
+    const NBR_MAMBRA_USED_CUSTOM = 'custom';
+    const NBR_MAMBRA_USED_VALUES = [
+        self::NBR_MAMBRA_USED_REGISTRE,
+        self::NBR_MAMBRA_USED_CUSTOM,
+    ];
+
     private ?int $id = null;
     private string $nom;
     private ?string $description = null;
     private ?int $nbrMambra = null;
-    private string $nbrMambraUsed = 'registre';
+    private string $nbrMambraUsed = self::NBR_MAMBRA_USED_REGISTRE;
 
     private ?KilasyLasitra $kilasyLasitra = null;
     private Collection $registres;
@@ -81,6 +89,40 @@ class Kilasy
         return $this;
     }
 
+    public function appliquerConfiguration(
+        string $nom,
+        ?string $description,
+        ?int $nbrMambra,
+        string $nbrMambraUsed,
+        ?KilasyLasitra $kilasyLasitra
+    ): self {
+        $nom = trim($nom);
+
+        if ($nom === '') {
+            throw new DomainValidationException('Le nom de la classe est obligatoire.');
+        }
+
+        if (!in_array($nbrMambraUsed, self::NBR_MAMBRA_USED_VALUES, true)) {
+            throw new DomainValidationException('La stratégie de nombre de membres est invalide.');
+        }
+
+        if ($nbrMambra !== null && $nbrMambra < 0) {
+            throw new DomainValidationException('Le nombre de membres ne peut pas être négatif.');
+        }
+
+        if ($nbrMambraUsed === self::NBR_MAMBRA_USED_CUSTOM && $nbrMambra === null) {
+            throw new DomainValidationException('Le nombre de membres est requis quand la stratégie est "custom".');
+        }
+
+        $this->nom = $nom;
+        $this->description = $description;
+        $this->nbrMambra = $nbrMambra;
+        $this->nbrMambraUsed = $nbrMambraUsed;
+        $this->kilasyLasitra = $kilasyLasitra;
+
+        return $this;
+    }
+
     public function getRegistres(): Collection
     {
         return $this->registres;
@@ -112,7 +154,7 @@ class Kilasy
      */
     public function getNombreMembresEffectif(): int
     {
-        if ($this->nbrMambraUsed === 'custom' && $this->nbrMambra !== null) {
+        if ($this->nbrMambraUsed === self::NBR_MAMBRA_USED_CUSTOM && $this->nbrMambra !== null) {
             return $this->nbrMambra;
         }
         

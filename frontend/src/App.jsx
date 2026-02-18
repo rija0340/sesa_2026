@@ -5,19 +5,26 @@ import Dashboard from "./pages/Dashboard";
 import KilasyPage from "./pages/KilasyPage";
 import RegistrePage from "./pages/RegistrePage";
 import StatsPage from "./pages/StatsPage";
+import LoginPage from "./pages/LoginPage";
 import "./app.css";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <AdminLayout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/kilasy" element={<KilasyPage />} />
-          <Route path="/registre" element={<RegistrePage />} />
-          <Route path="/stats" element={<StatsPage />} />
-        </Routes>
-      </AdminLayout>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        
+        <Route path="/*" element={
+          <AdminLayout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/kilasy" element={<KilasyPage />} />
+              <Route path="/registre" element={<RegistrePage />} />
+              <Route path="/stats" element={<StatsPage />} />
+            </Routes>
+          </AdminLayout>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }

@@ -6,9 +6,11 @@ use ApiPlatform\Metadata\DeleteOperationInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\RegistreResource;
+use App\Domain\Exception\DomainValidationException;
 use App\Entity\Registre;
 use App\Repository\KilasyRepositoryInterface;
 use App\Repository\RegistreRepositoryInterface;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RegistreStateProcessor implements ProcessorInterface
 {
@@ -60,34 +62,31 @@ class RegistreStateProcessor implements ProcessorInterface
 
         $kilasy = $this->kilasyRepository->findById($resource->kilasyId);
         if (!$kilasy) {
-            throw new \Exception("Classe introuvable avec l'ID: {$resource->kilasyId}");
+            throw new UnprocessableEntityHttpException("Classe introuvable avec l'ID: {$resource->kilasyId}");
         }
 
-        $entity->setMambraTonga($resource->mambraTonga)
-               ->setMpamangy($resource->mpamangy)
-               ->setNianatraImpito($resource->nianatraImpito)
-               ->setAsaSoa($resource->asaSoa)
-               ->setFampianaranaBaiboly($resource->fampianaranaBaiboly)
-               ->setBokyTrakta($resource->bokyTrakta);
-
-        // Convert DateTimeImmutable to DateTime if necessary for Doctrine 'date' type compatibility
-        if ($resource->createdAt instanceof \DateTimeImmutable) {
-            $mutableDate = new \DateTime();
-            $mutableDate->setTimestamp($resource->createdAt->getTimestamp());
-            $entity->setCreatedAt($mutableDate);
-        } else {
-            $entity->setCreatedAt($resource->createdAt);
+        try {
+            $entity->enregistrerDonnees(
+                kilasy: $kilasy,
+                mambraTonga: $resource->mambraTonga,
+                mpamangy: $resource->mpamangy,
+                nianatraImpito: $resource->nianatraImpito,
+                asaSoa: $resource->asaSoa,
+                fampianaranaBaiboly: $resource->fampianaranaBaiboly,
+                bokyTrakta: $resource->bokyTrakta,
+                semineraKaoferansa: $resource->semineraKaoferansa,
+                alasarona: $resource->alasarona,
+                nahavitaFampTaratasy: $resource->nahavitaFampTaratasy,
+                batisaTami: $resource->batisaTami,
+                fanatitra: $resource->fanatitra,
+                createdAt: $resource->createdAt,
+                tongaRehetra: $resource->tongaRehetra,
+                asafi: $resource->asafi,
+                nbrMambraKilasy: $resource->nbrMambraKilasy
+            );
+        } catch (DomainValidationException $e) {
+            throw new UnprocessableEntityHttpException($e->getMessage(), $e);
         }
-               
-        $entity->setKilasy($kilasy)
-               ->setSemineraKaoferansa($resource->semineraKaoferansa)
-               ->setAlasarona($resource->alasarona)
-               ->setNahavitaFampTaratasy($resource->nahavitaFampTaratasy)
-               ->setBatisaTami($resource->batisaTami)
-               ->setFanatitra($resource->fanatitra)
-               ->setTongaRehetra($resource->tongaRehetra)
-               ->setAsafi($resource->asafi)
-               ->setNbrMambraKilasy($resource->nbrMambraKilasy);
 
         $this->registreRepository->save($entity);
 

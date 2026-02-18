@@ -1,0 +1,4 @@
+<IfModule mod_setenvif.c>
+    # Ensure Authorization is forwarded to PHP for JWT extraction.
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>

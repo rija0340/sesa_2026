@@ -2,6 +2,9 @@
 
 namespace App\Entity;
 
+use App\Domain\Exception\DomainValidationException;
+use DateTime;
+use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -214,6 +217,79 @@ class Registre
         return $this;
     }
 
+    public function enregistrerDonnees(
+        Kilasy $kilasy,
+        int $mambraTonga,
+        int $mpamangy,
+        int $nianatraImpito,
+        int $asaSoa,
+        int $fampianaranaBaiboly,
+        int $bokyTrakta,
+        int $semineraKaoferansa,
+        int $alasarona,
+        int $nahavitaFampTaratasy,
+        int $batisaTami,
+        float $fanatitra,
+        DateTimeInterface $createdAt,
+        int $tongaRehetra,
+        int $asafi,
+        ?int $nbrMambraKilasy
+    ): self {
+        $this->assertPositiveOrZero('mambraTonga', $mambraTonga);
+        $this->assertPositiveOrZero('mpamangy', $mpamangy);
+        $this->assertPositiveOrZero('nianatraImpito', $nianatraImpito);
+        $this->assertPositiveOrZero('asaSoa', $asaSoa);
+        $this->assertPositiveOrZero('fampianaranaBaiboly', $fampianaranaBaiboly);
+        $this->assertPositiveOrZero('bokyTrakta', $bokyTrakta);
+        $this->assertPositiveOrZero('semineraKaoferansa', $semineraKaoferansa);
+        $this->assertPositiveOrZero('alasarona', $alasarona);
+        $this->assertPositiveOrZero('nahavitaFampTaratasy', $nahavitaFampTaratasy);
+        $this->assertPositiveOrZero('batisaTami', $batisaTami);
+        $this->assertPositiveOrZero('tongaRehetra', $tongaRehetra);
+        $this->assertPositiveOrZero('asafi', $asafi);
+
+        if ($fanatitra < 0) {
+            throw new DomainValidationException('Le fanatitra ne peut pas être négatif.');
+        }
+
+        if ($nbrMambraKilasy !== null && $nbrMambraKilasy < 0) {
+            throw new DomainValidationException('Le nombre de membres de la classe ne peut pas être négatif.');
+        }
+
+        $totalMembres = $kilasy->getNombreMembresEffectif();
+
+        if ($mambraTonga > $totalMembres) {
+            throw new DomainValidationException('Le nombre de membres présents est supérieur au nombre total de membres dans la classe.');
+        }
+
+        if ($nianatraImpito > $totalMembres) {
+            throw new DomainValidationException('Le nombre d\'apprenants est supérieur au nombre total de membres dans la classe.');
+        }
+
+        if ($nianatraImpito > $tongaRehetra) {
+            throw new DomainValidationException('Le nombre d\'apprenants est supérieur au nombre total de personnes présentes.');
+        }
+
+        $this->kilasy = $kilasy;
+        $this->mambraTonga = $mambraTonga;
+        $this->mpamangy = $mpamangy;
+        $this->nianatraImpito = $nianatraImpito;
+        $this->asaSoa = $asaSoa;
+        $this->fampianaranaBaiboly = $fampianaranaBaiboly;
+        $this->bokyTrakta = $bokyTrakta;
+        $this->semineraKaoferansa = $semineraKaoferansa;
+        $this->alasarona = $alasarona;
+        $this->nahavitaFampTaratasy = $nahavitaFampTaratasy;
+        $this->batisaTami = $batisaTami;
+        $this->fanatitra = $fanatitra;
+        $this->createdAt = $this->normalizeDate($createdAt);
+        $this->tongaRehetra = $tongaRehetra;
+        $this->asafi = $asafi;
+        $this->nbrMambraKilasy = $nbrMambraKilasy;
+
+        return $this;
+    }
+
     /**
      * Calculer le pourcentage de présence
      */
@@ -261,5 +337,24 @@ class Registre
         }
 
         return $erreurs;
+    }
+
+    private function assertPositiveOrZero(string $field, int $value): void
+    {
+        if ($value < 0) {
+            throw new DomainValidationException(sprintf('La valeur "%s" ne peut pas être négative.', $field));
+        }
+    }
+
+    private function normalizeDate(DateTimeInterface $date): DateTimeInterface
+    {
+        if ($date instanceof DateTimeImmutable) {
+            $mutableDate = new DateTime();
+            $mutableDate->setTimestamp($date->getTimestamp());
+
+            return $mutableDate;
+        }
+
+        return $date;
     }
 }

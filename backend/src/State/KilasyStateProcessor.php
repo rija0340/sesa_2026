@@ -6,9 +6,11 @@ use ApiPlatform\Metadata\DeleteOperationInterface;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\ApiResource\KilasyResource;
+use App\Domain\Exception\DomainValidationException;
 use App\Entity\Kilasy;
 use App\Repository\KilasyRepositoryInterface;
 use App\Repository\KilasyLasitraRepositoryInterface;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class KilasyStateProcessor implements ProcessorInterface
 {
@@ -58,20 +60,18 @@ class KilasyStateProcessor implements ProcessorInterface
             $entity = new Kilasy();
         }
 
-        $entity->setNom($resource->nom);
-        if ($resource->description !== null) {
-            $entity->setDescription($resource->description);
-        }
-        if ($resource->nbrMambra !== null) {
-            $entity->setNbrMambra($resource->nbrMambra);
-        }
-        $entity->setNbrMambraUsed($resource->nbrMambraUsed);
+        $kilasyLasitra = $this->resolveKilasyLasitra($resource->kilasyLasitraId);
 
-        if ($resource->kilasyLasitraId) {
-            $kilasyLasitra = $this->kilasyLasitraRepository->findById($resource->kilasyLasitraId);
-            if ($kilasyLasitra) {
-                $entity->setKilasyLasitra($kilasyLasitra);
-            }
+        try {
+            $entity->appliquerConfiguration(
+                nom: $resource->nom,
+                description: $resource->description,
+                nbrMambra: $resource->nbrMambra,
+                nbrMambraUsed: $resource->nbrMambraUsed,
+                kilasyLasitra: $kilasyLasitra
+            );
+        } catch (DomainValidationException $e) {
+            throw new UnprocessableEntityHttpException($e->getMessage(), $e);
         }
 
         $this->kilasyRepository->save($entity);
@@ -80,5 +80,21 @@ class KilasyStateProcessor implements ProcessorInterface
         $resource->id = $entity->getId();
 
         return $resource;
+    }
+
+    private function resolveKilasyLasitra(?int $kilasyLasitraId): ?\App\Entity\KilasyLasitra
+    {
+        if ($kilasyLasitraId === null) {
+            return null;
+        }
+
+        $kilasyLasitra = $this->kilasyLasitraRepository->findById($kilasyLasitraId);
+        if (!$kilasyLasitra) {
+            throw new UnprocessableEntityHttpException(
+                sprintf('Classe modèle introuvable avec l\'ID: %d', $kilasyLasitraId)
+            );
+        }
+
+        return $kilasyLasitra;
     }
 }

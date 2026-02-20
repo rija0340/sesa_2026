@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Title,
   SimpleGrid,
@@ -12,7 +12,13 @@ import {
   Loader,
   Table,
   ScrollArea,
+  Divider,
+  SegmentedControl,
 } from "@mantine/core";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
+import quarterOfYear from "dayjs/plugin/quarterOfYear";
+dayjs.extend(quarterOfYear);
 import useApi from "../hooks/useApi";
 import { getKilasys } from "../api/kilasy";
 import { getRegistres } from "../api/registre";
@@ -50,44 +56,56 @@ function StatCard({ title, value, subtitle, color }) {
 export default function Dashboard() {
   const { data: kilasys, loading: loadingK } = useApi(getKilasys);
   const { data: registres, loading: loadingR } = useApi(getRegistres);
+  const [period, setPeriod] = useState("quarter"); // 'quarter', 'year', 'all'
 
   const loading = loadingK || loadingR;
   const kilasyList = Array.isArray(kilasys) ? kilasys : [];
-  const registreList = Array.isArray(registres) ? registres : [];
+  const allRegistres = Array.isArray(registres) ? registres : [];
 
-  // Compute quick stats
+  const filteredRegistres = useMemo(() => {
+    if (period === "all") return allRegistres;
+    
+    const now = dayjs();
+    let start;
+    if (period === "quarter") {
+      start = now.startOf("quarter");
+    } else {
+      start = now.startOf("year");
+    }
+
+    return allRegistres.filter(r => {
+      const d = dayjs(r.createdAt);
+      return d.isAfter(start) || d.isSame(start);
+    });
+  }, [allRegistres, period]);
+
+  // Compute quick stats based on filtered data
   const totalKilasy = kilasyList.length;
-  const totalRegistres = registreList.length;
+  const totalRegistres = filteredRegistres.length;
 
-  // Most recent registres (last 5)
-  const recentRegistres = [...registreList]
-    .sort((a, b) => {
-      const da = a?.createdAt ? new Date(a.createdAt) : new Date(0);
-      const db = b?.createdAt ? new Date(b.createdAt) : new Date(0);
-      return db - da;
-    })
+  // Most recent registres (last 5 from all - to see latest activity regardless of filter?) 
+  // actually usually dashboard stats follow filter, but recent list might be global. 
+  // Let's keep recent global for activity, or filtered for consistency. Filtered is better for "dashboard" logic.
+  const recentRegistres = [...filteredRegistres]
+    .sort((a, b) => dayjs(b.createdAt).unix() - dayjs(a.createdAt).unix())
     .slice(0, 5);
 
-  // Average presence and apprentissage from all registres
-  let avgPresence = 0;
-  let avgApprentissage = 0;
-  if (registreList.length > 0) {
-    const totalPresents = registreList.reduce((sum, r) => sum + (r.mambraTonga || 0), 0);
-    const totalLearners = registreList.reduce((sum, r) => sum + (r.nianatraImpito || 0), 0);
-    const totalAll = registreList.reduce((sum, r) => sum + (r.tongaRehetra || 0), 0);
-    avgPresence = totalAll > 0
-      ? Math.round((totalPresents / totalAll) * 100)
-      : 0;
-    avgApprentissage = totalAll > 0
-      ? Math.round((totalLearners / totalAll) * 100)
-      : 0;
-  }
+  const stats = useMemo(() => {
+    if (filteredRegistres.length === 0) {
+      return { avgPresence: 0, avgApprentissage: 0, totalOffrande: 0 };
+    }
 
-  // Total offrande
-  const totalOffrande = registreList.reduce(
-    (sum, r) => sum + (Number(r?.fanatitra) || 0),
-    0
-  );
+    const totalPresents = filteredRegistres.reduce((sum, r) => sum + (Number(r.mambraTonga) || 0), 0);
+    const totalLearners = filteredRegistres.reduce((sum, r) => sum + (Number(r.nianatraImpito) || 0), 0);
+    const totalAll = filteredRegistres.reduce((sum, r) => sum + (Number(r.tongaRehetra) || 0), 0);
+    const totalOffrande = filteredRegistres.reduce((sum, r) => sum + (Number(r.fanatitra) || 0), 0);
+
+    return {
+      avgPresence: totalAll > 0 ? Math.round((totalPresents / totalAll) * 100) : 0,
+      avgApprentissage: totalAll > 0 ? Math.round((totalLearners / totalAll) * 100) : 0,
+      totalOffrande
+    };
+  }, [filteredRegistres]);
 
   function getKilasyName(kilasyId) {
     const k = kilasyList.find((x) => String(x?.id) === String(kilasyId));
@@ -96,25 +114,34 @@ export default function Dashboard() {
 
   function formatDate(dateStr) {
     if (!dateStr) return "—";
-    try {
-      return new Date(dateStr).toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    return dayjs(dateStr).locale("fr").format("DD MMM YYYY");
   }
 
   return (
     <Box>
-      <Title order={2} mb="xs">
-        Tableau de bord
-      </Title>
-      <Text c="dimmed" mb="xl">
-        Vue d'ensemble du Sekoly Sabata
-      </Text>
+      <Group justify="space-between" align="center" mb="xl">
+        <Box>
+          <Title order={2} mb="xs">
+            Tableau de bord
+          </Title>
+          <Text c="dimmed">
+            Vue d'ensemble du Sekoly Sabata
+          </Text>
+        </Box>
+
+        <Box>
+          <Text size="xs" fw={700} c="dimmed" mb={5} tt="uppercase" ta="right">Période d'affichage</Text>
+          <SegmentedControl
+            value={period}
+            onChange={setPeriod}
+            data={[
+              { label: 'Trimestre', value: 'quarter' },
+              { label: 'Année', value: 'year' },
+              { label: 'Tout', value: 'all' },
+            ]}
+          />
+        </Box>
+      </Group>
 
       {loading ? (
         <Box py="xl" style={{ display: "flex", justifyContent: "center" }}>
@@ -137,14 +164,14 @@ export default function Dashboard() {
             />
             <StatCard
               title="Présence"
-              value={avgPresence}
+              value={stats.avgPresence}
               subtitle="Moyenne %"
               color="teal"
             />
             <StatCard
-              title="Offrande totale"
-              value={`${totalOffrande.toLocaleString("fr-FR")} Ar`}
-              subtitle="Fanatitra"
+              title="Offrande"
+              value={`${stats.totalOffrande.toLocaleString("fr-FR")} Ar`}
+              subtitle="Total sur la période"
               color="yellow"
             />
           </SimpleGrid>
@@ -205,7 +232,7 @@ export default function Dashboard() {
               ) : (
                 <Box style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {kilasyList.map((k) => {
-                    const count = registreList.filter(
+                    const count = allRegistres.filter(
                       (r) => String(r?.kilasyId) === String(k?.id)
                     ).length;
                     return (

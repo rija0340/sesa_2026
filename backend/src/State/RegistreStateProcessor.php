@@ -65,6 +65,18 @@ class RegistreStateProcessor implements ProcessorInterface
             throw new UnprocessableEntityHttpException("Classe introuvable avec l'ID: {$resource->kilasyId}");
         }
 
+        $existingSameDate = $this->registreRepository->findByKilasyIdAndDate(
+            $resource->kilasyId,
+            $resource->createdAt
+        );
+
+        if ($existingSameDate && (!$entity->getId() || $existingSameDate->getId() !== $entity->getId())) {
+            throw new UnprocessableEntityHttpException(sprintf(
+                'Un registre existe déjà pour cette classe à la date %s.',
+                $resource->createdAt->format('Y-m-d')
+            ));
+        }
+
         try {
             $entity->enregistrerDonnees(
                 kilasy: $kilasy,
@@ -80,9 +92,8 @@ class RegistreStateProcessor implements ProcessorInterface
                 batisaTami: $resource->batisaTami,
                 fanatitra: $resource->fanatitra,
                 createdAt: $resource->createdAt,
-                tongaRehetra: $resource->tongaRehetra,
                 asafi: $resource->asafi,
-                nbrMambraKilasy: $resource->nbrMambraKilasy
+                nbrMambraKilasy: $kilasy->getNombreMembresEffectif()
             );
         } catch (DomainValidationException $e) {
             throw new UnprocessableEntityHttpException($e->getMessage(), $e);
@@ -90,8 +101,10 @@ class RegistreStateProcessor implements ProcessorInterface
 
         $this->registreRepository->save($entity);
 
-        // Update resource with ID
+        // Update response resource with computed/persisted values
         $resource->id = $entity->getId();
+        $resource->tongaRehetra = $entity->getTongaRehetra();
+        $resource->nbrMambraKilasy = $entity->getNbrMambraKilasy();
 
         return $resource;
     }

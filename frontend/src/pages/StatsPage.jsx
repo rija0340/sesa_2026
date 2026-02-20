@@ -20,6 +20,9 @@ import {
   Divider,
   NumberInput,
 } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
 /* ── Icons ─────────────────────────────────────────────────────── */
 function IconCalendar() {
   return (
@@ -126,8 +129,9 @@ export default function StatsPage() {
   // Date Selection State
   const today = new Date().toISOString().split('T')[0];
   const currentYear = new Date().getFullYear();
+  const lastSaturday = dayjs().day(6).isAfter(dayjs()) ? dayjs().day(-1).toDate() : dayjs().day(6).toDate();
 
-  const [refDate, setRefDate] = useState(today); // For Sabata
+  const [refDate, setRefDate] = useState(lastSaturday); // For Sabata (Date object)
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [quarter, setQuarter] = useState(1);
@@ -141,8 +145,9 @@ export default function StatsPage() {
 
     switch (periodType) {
       case 'sabata':
-        start = refDate;
-        end = refDate; // Controller handles explicit date end time
+        const formatted = refDate ? dayjs(refDate).format('YYYY-MM-DD') : '';
+        start = formatted;
+        end = formatted; // Controller handles explicit date end time
         break;
       case 'month':
         // Last day of month
@@ -259,6 +264,13 @@ export default function StatsPage() {
     return { columns, rows };
   }, [statsData, kilasys, viewMode, periodType]);
 
+  const totalEffectiveMembers = useMemo(() => {
+    if (!statsData?.data) return 0;
+    return statsData.data
+      .filter(r => (Number(r.mambraTonga) || 0) > 0)
+      .reduce((sum, r) => sum + (Number(r.nbrMambraKilasy) || 0), 0);
+  }, [statsData]);
+
 
   /* ── Render ──────────────────────────────────────────────── */
 
@@ -286,9 +298,14 @@ export default function StatsPage() {
 
             {/* Dynamic Date Selectors based on Type */}
             {periodType === 'sabata' && (
-              <TextInput
-                label="Date du Sabbat" type="date"
-                value={refDate} onChange={(e) => setRefDate(e.target.value)}
+              <DatePickerInput
+                label="Date du Sabbat"
+                placeholder="Choisir un samedi"
+                value={refDate}
+                onChange={setRefDate}
+                locale="fr"
+                excludeDate={(date) => date.getDay() !== 6}
+                valueFormat="DD MMMM YYYY"
               />
             )}
 
@@ -383,6 +400,16 @@ export default function StatsPage() {
 
       {statsData && !loading && matrix && (
         <Stack gap="xl">
+          {periodType === 'sabata' && (
+            <Paper p="xl" radius="md" withBorder style={{ backgroundColor: 'var(--mantine-color-indigo-0)', borderColor: 'var(--mantine-color-indigo-2)' }}>
+              <Stack gap={0} align="center">
+                <Text size="sm" fw={700} tt="uppercase" c="indigo.8">Tatitra Sabata</Text>
+                <Title order={1} style={{ fontSize: 42, color: 'var(--mantine-color-indigo-9)' }}>
+                  {dayjs(refDate).locale('fr').format('DD MMMM YYYY')}
+                </Title>
+              </Stack>
+            </Paper>
+          )}
 
           {/* 1. Global Cards */}
           <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="lg">
@@ -390,7 +417,7 @@ export default function StatsPage() {
               title="Membres Présents"
               value={statsData.statistiques.totalMembresTonga}
               color="indigo"
-              suffix="/ Total" // Ideally show total members here
+              suffix={`/ ${totalEffectiveMembers}`}
             />
             <StatCard
               title="Présence Moyenne"

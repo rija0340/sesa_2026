@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Title,
   Text,
@@ -21,7 +21,11 @@ import {
   Stack,
   Divider,
 } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
 import { useDisclosure } from "@mantine/hooks";
+import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi";
 import {
   getRegistres,
@@ -76,19 +80,26 @@ function IconEye() {
 
 /* ── Registre fields definition ────────────────────────────────── */
 const REGISTRE_FIELDS = [
-  { key: "mambraTonga", label: "Membres présents", min: 0 },
-  { key: "mpamangy", label: "Visiteurs", min: 0 },
-  { key: "tongaRehetra", label: "Total présents", min: 0 },
-  { key: "nianatraImpito", label: "Ont étudié la leçon", min: 0 },
+  { key: "mambraTonga", label: "Mambra tonga", min: 0 },
+  { key: "mpamangy", label: "Mpamangy", min: 0 },
+  { key: "tongaRehetra", label: "Tonga rehetra", min: 0, readOnly: true },
+  { key: "nianatraImpito", label: "Nianatra impito", min: 0 },
+  { key: "asafi", label: "Asafi", min: 0 },
   { key: "asaSoa", label: "Asa soa", min: 0 },
-  { key: "fampianaranaBaiboly", label: "Études bibliques", min: 0 },
-  { key: "bokyTrakta", label: "Livres / tracts", min: 0 },
-  { key: "semineraKaoferansa", label: "Séminaires / conférences", min: 0 },
+  { key: "fampianaranaBaiboly", label: "Fampianarana Baiboly", min: 0 },
+  { key: "bokyTrakta", label: "Boky na Trakta nozaraina", min: 0 },
+  { key: "semineraKaoferansa", label: "Seminera na kaoferansa", min: 0 },
   { key: "alasarona", label: "Alasarona", min: 0 },
-  { key: "nahavitaFampTaratasy", label: "Correspondances terminées", min: 0 },
-  { key: "batisaTami", label: "Baptêmes / tami", min: 0 },
-  { key: "asafi", label: "ASAFI", min: 0 },
-  { key: "fanatitra", label: "Offrande (Ar)", min: 0, precision: 2 },
+  { key: "nahavitaFampTaratasy", label: "Nahavita fampianarana ara-taratasy", min: 0 },
+  { key: "batisaTami", label: "Batisa TAMI", min: 0 },
+  { key: "fanatitra", label: "Fanatitra", min: 0, precision: 2 },
+];
+
+const SORT_OPTIONS = [
+  { value: "date_desc", label: "Date: plus récent" },
+  { value: "date_asc", label: "Date: plus ancien" },
+  { value: "class_asc", label: "Classe: A-Z" },
+  { value: "class_desc", label: "Classe: Z-A" },
 ];
 
 const EMPTY_FORM = {
@@ -106,11 +117,11 @@ const EMPTY_FORM = {
   batisaTami: 0,
   asafi: 0,
   fanatitra: 0,
-  nbrMambraKilasy: null,
-  createdAt: new Date().toISOString().split("T")[0],
+  createdAt: null,
 };
 
 export default function RegistrePage() {
+  const navigate = useNavigate();
   const { data: registres, loading, error, execute: reload } = useApi(getRegistres);
   const { data: kilasys } = useApi(getKilasys);
   const [formOpened, { open: openForm, close: closeForm }] = useDisclosure(false);
@@ -121,12 +132,76 @@ export default function RegistrePage() {
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortMode, setSortMode] = useState("date_desc");
+  const [classFilter, setClassFilter] = useState("all");
 
+  const list = Array.isArray(registres) ? registres : [];
   const kilasyList = Array.isArray(kilasys) ? kilasys : [];
-  const kilasyOptions = kilasyList.map((k) => ({
-    value: String(k.id),
-    label: k.nom,
-  }));
+
+  const selectedDateKey = useMemo(
+    () => (form.createdAt ? dayjs(form.createdAt).format("YYYY-MM-DD") : null),
+    [form.createdAt]
+  );
+
+  const occupiedKilasyIdsForDate = useMemo(() => {
+    if (!selectedDateKey) {
+      return new Set();
+    }
+
+    return new Set(
+      list
+        .filter((r) => {
+          const isSameDate = dayjs(r.createdAt).format("YYYY-MM-DD") === selectedDateKey;
+          const isEditedRegistre = editingId && Number(r.id) === Number(editingId);
+          return isSameDate && !isEditedRegistre;
+        })
+        .map((r) => String(r.kilasyId))
+    );
+  }, [list, selectedDateKey, editingId]);
+
+  const kilasyOptions = useMemo(() => {
+    return kilasyList
+      .filter(
+        (k) =>
+          !selectedDateKey ||
+          String(k.id) === String(form.kilasyId) ||
+          !occupiedKilasyIdsForDate.has(String(k.id))
+      )
+      .map((k) => ({ value: String(k.id), label: k.nom }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [kilasyList, selectedDateKey, form.kilasyId, occupiedKilasyIdsForDate]);
+
+  const classFilterOptions = useMemo(
+    () => [
+      { value: "all", label: "Toutes les classes" },
+      ...kilasyList
+        .map((k) => ({ value: String(k.id), label: k.nom }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ],
+    [kilasyList]
+  );
+
+  const selectedKilasy = kilasyList.find((x) => String(x.id) === String(form.kilasyId));
+  const effectiveMaxMembres = selectedKilasy?.nbrMambra ?? null;
+  const canValidateMembres = effectiveMaxMembres !== null;
+
+  const validationErrors = {
+    mambraTonga:
+      canValidateMembres && form.mambraTonga > effectiveMaxMembres
+        ? `Dépasse le nombre de membres (${effectiveMaxMembres})`
+        : null,
+    nianatraImpito:
+      canValidateMembres && form.nianatraImpito > effectiveMaxMembres
+        ? `Dépasse le nombre de membres (${effectiveMaxMembres})`
+        : form.nianatraImpito > form.tongaRehetra
+          ? "Dépasse le total présent"
+          : null,
+  };
+
+  const hasValidationError = Boolean(
+    validationErrors.mambraTonga || validationErrors.nianatraImpito
+  );
 
   function getKilasyName(kilasyId) {
     const k = kilasyList.find((x) => String(x?.id) === String(kilasyId));
@@ -146,9 +221,28 @@ export default function RegistrePage() {
     }
   }
 
+  function isKilasyUsedOnDate(kilasyId, dateValue) {
+    if (!kilasyId || !dateValue) {
+      return false;
+    }
+
+    const dateKey = dayjs(dateValue).format("YYYY-MM-DD");
+    return list.some((r) => {
+      const sameDate = dayjs(r.createdAt).format("YYYY-MM-DD") === dateKey;
+      const sameKilasy = String(r.kilasyId) === String(kilasyId);
+      const isCurrentEdit = editingId && Number(r.id) === Number(editingId);
+      return sameDate && sameKilasy && !isCurrentEdit;
+    });
+  }
+
+  function handleGoToKilasy() {
+    closeForm();
+    navigate("/kilasy");
+  }
+
   function handleNew() {
     setEditingId(null);
-    setForm({ ...EMPTY_FORM, createdAt: new Date().toISOString().split("T")[0] });
+    setForm(EMPTY_FORM);
     setFormError(null);
     openForm();
   }
@@ -170,8 +264,7 @@ export default function RegistrePage() {
       batisaTami: r.batisaTami,
       asafi: r.asafi,
       fanatitra: r.fanatitra,
-      nbrMambraKilasy: r.nbrMambraKilasy,
-      createdAt: r.createdAt ? r.createdAt.split("T")[0] : "",
+      createdAt: r.createdAt ? new Date(r.createdAt) : null,
     });
     setFormError(null);
     openForm();
@@ -189,26 +282,33 @@ export default function RegistrePage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.createdAt) {
+      setFormError("La date est obligatoire");
+      return;
+    }
     if (!form.kilasyId) {
       setFormError("La classe est obligatoire");
+      return;
+    }
+    if (isKilasyUsedOnDate(form.kilasyId, form.createdAt)) {
+      setFormError("Cette classe a déjà un registre pour la date sélectionnée.");
       return;
     }
     setSaving(true);
     setFormError(null);
     try {
       const numericFields = REGISTRE_FIELDS.reduce((acc, field) => {
+        if (field.readOnly) {
+          return acc;
+        }
         acc[field.key] = Number(form[field.key]) || 0;
         return acc;
       }, {});
 
       const payload = {
         ...numericFields,
-        nbrMambraKilasy:
-          form.nbrMambraKilasy === null || form.nbrMambraKilasy === ""
-            ? null
-            : Number(form.nbrMambraKilasy),
         kilasyId: Number(form.kilasyId),
-        createdAt: form.createdAt + "T00:00:00+00:00",
+        createdAt: dayjs(form.createdAt).format("YYYY-MM-DD") + "T00:00:00+00:00",
       };
       if (editingId) {
         await updateRegistre(editingId, payload);
@@ -239,12 +339,51 @@ export default function RegistrePage() {
   }
 
   function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "mambraTonga" || key === "mpamangy") {
+        next.tongaRehetra = (Number(next.mambraTonga) || 0) + (Number(next.mpamangy) || 0);
+      }
+      if (key === "createdAt" && next.kilasyId && isKilasyUsedOnDate(next.kilasyId, value)) {
+        next.kilasyId = null;
+      }
+      return next;
+    });
   }
 
-  const list = Array.isArray(registres) ? registres : [];
+  const displayedList = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    const filtered = list.filter((r) => {
+      if (classFilter !== "all" && String(r.kilasyId) !== classFilter) {
+        return false;
+      }
 
-  // Logic for summary recaps (last 5 dates)
+      if (!query) {
+        return true;
+      }
+
+      const className = getKilasyName(r.kilasyId).toLowerCase();
+      const displayDate = formatDate(r.createdAt).toLowerCase();
+      const isoDate = dayjs(r.createdAt).format("YYYY-MM-DD");
+
+      return className.includes(query) || displayDate.includes(query) || isoDate.includes(query);
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortMode === "date_asc") {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      }
+      if (sortMode === "class_asc") {
+        return getKilasyName(a.kilasyId).localeCompare(getKilasyName(b.kilasyId));
+      }
+      if (sortMode === "class_desc") {
+        return getKilasyName(b.kilasyId).localeCompare(getKilasyName(a.kilasyId));
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [list, classFilter, searchTerm, sortMode, kilasyList]);
+
+  // Summary for last 5 recent dates
   const last5Dates = [...list]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .reduce((acc, curr) => {
@@ -263,7 +402,7 @@ export default function RegistrePage() {
       <Group justify="space-between" mb="xl">
         <Box>
           <Title order={2} mb={4}>Registre</Title>
-          <Text c="dimmed">Suivi hebdomadaire des activités</Text>
+          <Text c="dimmed">Tatitra Sabata & Rétrospectives</Text>
         </Box>
         <Button leftSection={<IconPlus />} onClick={handleNew}>
           Nouveau registre
@@ -335,37 +474,67 @@ export default function RegistrePage() {
         {/* ── Main List Column ─────────────────────────────── */}
         <Box style={{ gridColumn: "span 3" }}>
           <Paper shadow="sm" radius="md" withBorder>
+            <Box p="md" style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
+              <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm">
+                <TextInput
+                  placeholder="Rechercher par classe ou date (YYYY-MM-DD)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Select
+                  data={SORT_OPTIONS}
+                  value={sortMode}
+                  onChange={(val) => setSortMode(val || "date_desc")}
+                />
+                <Select
+                  data={classFilterOptions}
+                  value={classFilter}
+                  onChange={(val) => setClassFilter(val || "all")}
+                />
+              </SimpleGrid>
+              <Group justify="space-between" mt="sm">
+                <Text size="xs" c="dimmed">
+                  Liste compacte, triable et recherchable
+                </Text>
+                <Badge variant="light" color="indigo">
+                  {displayedList.length} résultat(s)
+                </Badge>
+              </Group>
+            </Box>
+
             {loading ? (
               <Box py="xl" style={{ display: "flex", justifyContent: "center" }}>
                 <Loader />
               </Box>
-            ) : list.length === 0 ? (
+            ) : displayedList.length === 0 ? (
               <Text ta="center" c="dimmed" py="xl">
-                Aucun registre trouvé. Cliquez sur « Nouveau registre » pour commencer.
+                Aucun registre trouvé avec ces filtres.
               </Text>
             ) : (
               <ScrollArea>
-                <Table striped highlightOnHover>
+                <Table striped highlightOnHover verticalSpacing="xs" horizontalSpacing="sm">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Date</Table.Th>
                       <Table.Th>Classe</Table.Th>
-                      <Table.Th>Présents</Table.Th>
-                      <Table.Th>Visiteurs</Table.Th>
+                      <Table.Th>Présence</Table.Th>
                       <Table.Th>Apprenants</Table.Th>
                       <Table.Th>Offrande</Table.Th>
                       <Table.Th style={{ width: 120 }}>Actions</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {list.map((r) => (
+                    {displayedList.map((r) => (
                       <Table.Tr key={r.id}>
                         <Table.Td>{formatDate(r.createdAt)}</Table.Td>
                         <Table.Td fw={500}>{getKilasyName(r.kilasyId)}</Table.Td>
                         <Table.Td>
-                          <Badge variant="light" color="indigo">{r.mambraTonga}</Badge>
+                          <Group gap={6}>
+                            <Badge variant="light" color="indigo">{r.mambraTonga}</Badge>
+                            <Text size="xs" c="dimmed">+{r.mpamangy}</Text>
+                            <Text size="xs" c="dimmed">= {r.tongaRehetra}</Text>
+                          </Group>
                         </Table.Td>
-                        <Table.Td>{r.mpamangy}</Table.Td>
                         <Table.Td>
                           <Badge variant="light" color="teal">{r.nianatraImpito}</Badge>
                         </Table.Td>
@@ -416,34 +585,60 @@ export default function RegistrePage() {
             <Alert color="red" mb="md" icon={<IconAlert />}>{formError}</Alert>
           )}
 
+          {hasValidationError && (
+            <Alert color="orange" mb="md" icon={<IconAlert />} title="Attention : Cohérence des données">
+               Certaines valeurs saisies dépassent le nombre de membres de la classe.
+            </Alert>
+          )}
+
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" align="flex-start">
             <Box style={{ gridColumn: "span 2" }}>
+              <DatePickerInput
+                label="Date"
+                placeholder="Choisir un samedi"
+                required
+                mb="md"
+                value={form.createdAt}
+                onChange={(val) => updateField("createdAt", val)}
+                locale="fr"
+                excludeDate={(date) => date.getDay() !== 6}
+                valueFormat="DD MMMM YYYY"
+              />
               <Select
                 label="Classe"
-                placeholder="Choisir une classe"
+                placeholder={
+                  !form.createdAt
+                    ? "Sélectionnez d'abord une date"
+                    : kilasyOptions.length === 0
+                      ? "Aucune classe disponible pour cette date"
+                      : "Choisir une classe"
+                }
                 required
                 mb="md"
                 data={kilasyOptions}
                 value={form.kilasyId ? String(form.kilasyId) : null}
                 onChange={(val) => updateField("kilasyId", val)}
                 searchable
+                disabled={!form.createdAt}
+                nothingFoundMessage={
+                  form.createdAt
+                    ? "Aucune classe disponible"
+                    : "Sélectionnez d'abord une date"
+                }
               />
-              <TextInput
-                label="Date"
-                type="date"
-                required
-                mb="md"
-                value={form.createdAt}
-                onChange={(e) => updateField("createdAt", e.target.value)}
-              />
-              <NumberInput
-                label="Nombre de membres (surcharge)"
-                placeholder="Optionnel"
-                mb="md"
-                min={0}
-                value={form.nbrMambraKilasy}
-                onChange={(val) => updateField("nbrMambraKilasy", val)}
-              />
+              {form.createdAt && kilasyOptions.length === 0 && (
+                <Alert color="orange" mb="md" icon={<IconAlert />}>
+                  Toutes les classes ont déjà un registre pour cette date.
+                </Alert>
+              )}
+              <Group justify="space-between" mb="md">
+                <Text size="xs" c="dimmed">
+                  Le nombre de membres est pris depuis la fiche classe.
+                </Text>
+                <Button type="button" size="xs" variant="light" onClick={handleGoToKilasy}>
+                  Gérer sur Kilasy
+                </Button>
+              </Group>
             </Box>
 
             <Box style={{ gridColumn: "span 1" }}>
@@ -488,12 +683,15 @@ export default function RegistrePage() {
                 decimalScale={field.precision}
                 value={form[field.key]}
                 onChange={(val) => updateField(field.key, val)}
+                readOnly={field.readOnly}
+                variant={field.readOnly ? "filled" : "default"}
+                error={validationErrors[field.key]}
               />
             ))}
           </SimpleGrid>
           <Group justify="flex-end" mt="xl">
             <Button variant="subtle" onClick={closeForm}>Annuler</Button>
-            <Button type="submit" loading={saving}>
+            <Button type="submit" loading={saving} color={hasValidationError ? "orange" : "blue"}>
               {editingId ? "Enregistrer" : "Créer"}
             </Button>
           </Group>
@@ -528,7 +726,7 @@ export default function RegistrePage() {
                 </React.Fragment>
               ))}
 
-              <Text size="sm" c="dimmed">Nb membres (surcharge)</Text>
+              <Text size="sm" c="dimmed">Nb membres enregistrés</Text>
               <Text size="sm" fw={500}>{selected.nbrMambraKilasy ?? "—"}</Text>
             </SimpleGrid>
           </Box>

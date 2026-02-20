@@ -147,9 +147,6 @@ class StatsController extends AbstractController
         ]);
     }
 
-    /**
-     * Méthode utilitaire pour calculer les statistiques sur un ensemble de registres
-     */
     private function calculerStatistiquesCollectives(array $registres): array
     {
         if (empty($registres)) {
@@ -162,13 +159,29 @@ class StatsController extends AbstractController
             ];
         }
 
-        $totalRegistres = count($registres);
+        // Filtre pour exclure les classes sans données (mambraTonga = 0)
+        // car on considère que ces classes n'étaient pas présentes/actives
+        $registresActifs = array_filter($registres, function ($r) {
+            return $r->getMambraTonga() > 0;
+        });
+
+        if (empty($registresActifs)) {
+            return [
+                'totalRegistres' => count($registres),
+                'moyennePresence' => 0,
+                'moyenneApprentissage' => 0,
+                'totalMembresTonga' => 0,
+                'totalNianatraImpito' => 0,
+            ];
+        }
+
+        $totalRegistresActifs = count($registresActifs);
         $totalPresence = 0;
         $totalApprentissage = 0;
         $totalMembresTonga = 0;
         $totalNianatraImpito = 0;
 
-        foreach ($registres as $registre) {
+        foreach ($registresActifs as $registre) {
             /** @var Registre $registre */
             $totalPresence += $registre->getPourcentagePresence();
             $totalApprentissage += $registre->getPourcentageApprentissage();
@@ -177,9 +190,10 @@ class StatsController extends AbstractController
         }
 
         return [
-            'totalRegistres' => $totalRegistres,
-            'moyennePresence' => round($totalPresence / $totalRegistres, 2),
-            'moyenneApprentissage' => round($totalApprentissage / $totalRegistres, 2),
+            'totalRegistres' => count($registres),
+            'totalRegistresActifs' => $totalRegistresActifs,
+            'moyennePresence' => round($totalPresence / $totalRegistresActifs, 2),
+            'moyenneApprentissage' => round($totalApprentissage / $totalRegistresActifs, 2),
             'totalMembresTonga' => $totalMembresTonga,
             'totalNianatraImpito' => $totalNianatraImpito,
         ];

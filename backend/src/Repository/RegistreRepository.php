@@ -32,12 +32,33 @@ class RegistreRepository implements RegistreRepositoryInterface
 
     public function findByDate(\DateTimeInterface $date): array
     {
+        $start = (clone $date)->setTime(0, 0, 0);
+        $end = (clone $date)->setTime(23, 59, 59);
+
         return $this->entityManager->getRepository(Registre::class)
             ->createQueryBuilder('r')
-            ->where('DATE(r.createdAt) = :date')
-            ->setParameter('date', $date->format('Y-m-d'))
+            ->where('r.createdAt BETWEEN :start AND :end')
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
+    }
+
+    public function findByKilasyIdAndDate(int $kilasyId, \DateTimeInterface $date): ?Registre
+    {
+        $start = (clone $date)->setTime(0, 0, 0);
+        $end = (clone $date)->setTime(23, 59, 59);
+
+        return $this->entityManager->getRepository(Registre::class)
+            ->createQueryBuilder('r')
+            ->where('r.kilasy = :kilasyId')
+            ->andWhere('r.createdAt BETWEEN :start AND :end')
+            ->setParameter('kilasyId', $kilasyId)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 
     public function save(Registre $registre): void

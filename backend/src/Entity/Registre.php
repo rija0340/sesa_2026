@@ -231,7 +231,6 @@ class Registre
         int $batisaTami,
         float $fanatitra,
         DateTimeInterface $createdAt,
-        int $tongaRehetra,
         int $asafi,
         ?int $nbrMambraKilasy
     ): self {
@@ -245,7 +244,8 @@ class Registre
         $this->assertPositiveOrZero('alasarona', $alasarona);
         $this->assertPositiveOrZero('nahavitaFampTaratasy', $nahavitaFampTaratasy);
         $this->assertPositiveOrZero('batisaTami', $batisaTami);
-        $this->assertPositiveOrZero('tongaRehetra', $tongaRehetra);
+        
+        $this->tongaRehetra = $mambraTonga + $mpamangy;
         $this->assertPositiveOrZero('asafi', $asafi);
 
         if ($fanatitra < 0) {
@@ -256,7 +256,7 @@ class Registre
             throw new DomainValidationException('Le nombre de membres de la classe ne peut pas être négatif.');
         }
 
-        $totalMembres = $kilasy->getNombreMembresEffectif();
+        $totalMembres = $nbrMambraKilasy ?? $kilasy->getNombreMembresEffectif();
 
         if ($mambraTonga > $totalMembres) {
             throw new DomainValidationException('Le nombre de membres présents est supérieur au nombre total de membres dans la classe.');
@@ -266,7 +266,7 @@ class Registre
             throw new DomainValidationException('Le nombre d\'apprenants est supérieur au nombre total de membres dans la classe.');
         }
 
-        if ($nianatraImpito > $tongaRehetra) {
+        if ($nianatraImpito > ($mambraTonga + $mpamangy)) {
             throw new DomainValidationException('Le nombre d\'apprenants est supérieur au nombre total de personnes présentes.');
         }
 
@@ -283,7 +283,6 @@ class Registre
         $this->batisaTami = $batisaTami;
         $this->fanatitra = $fanatitra;
         $this->createdAt = $this->normalizeDate($createdAt);
-        $this->tongaRehetra = $tongaRehetra;
         $this->asafi = $asafi;
         $this->nbrMambraKilasy = $nbrMambraKilasy;
 
@@ -295,7 +294,7 @@ class Registre
      */
     public function getPourcentagePresence(): float
     {
-        $totalMembres = $this->kilasy ? $this->kilasy->getNombreMembresEffectif() : 0;
+        $totalMembres = $this->nbrMambraKilasy ?? ($this->kilasy ? $this->kilasy->getNombreMembresEffectif() : 0);
         if ($totalMembres === 0) {
             return 0.0;
         }
@@ -322,7 +321,7 @@ class Registre
     {
         $erreurs = [];
         
-        $totalMembres = $this->kilasy ? $this->kilasy->getNombreMembresEffectif() : 0;
+        $totalMembres = $this->nbrMambraKilasy ?? ($this->kilasy ? $this->kilasy->getNombreMembresEffectif() : 0);
         
         if ($this->mambraTonga > $totalMembres) {
             $erreurs[] = "Le nombre de membres présents est supérieur au nombre total de membres dans la classe";

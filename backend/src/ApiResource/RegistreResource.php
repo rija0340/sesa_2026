@@ -77,12 +77,12 @@ class RegistreResource
     #[Groups(['registre:read', 'registre:write'])]
     public int $kilasyId;
 
-    #[Groups(['registre:read', 'registre:write'])]
+    #[Groups(['registre:read'])]
     public int $tongaRehetra;
 
     #[Groups(['registre:read', 'registre:write'])]
     public int $asafi;
 
-    #[Groups(['registre:read', 'registre:write'])]
+    #[Groups(['registre:read'])]
     public ?int $nbrMambraKilasy = null;
 }

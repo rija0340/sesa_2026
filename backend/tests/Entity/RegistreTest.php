@@ -39,7 +39,6 @@ class RegistreTest extends TestCase
             batisaTami: 0,
             fanatitra: 150.50,
             createdAt: $now,
-            tongaRehetra: 10,
             asafi: 0,
             nbrMambraKilasy: null
         );
@@ -74,7 +73,6 @@ class RegistreTest extends TestCase
             batisaTami: 0,
             fanatitra: 0,
             createdAt: new DateTime(),
-            tongaRehetra: 11,
             asafi: 0,
             nbrMambraKilasy: null
         );
@@ -102,7 +100,6 @@ class RegistreTest extends TestCase
             batisaTami: 0,
             fanatitra: 0,
             createdAt: new DateTime(),
-            tongaRehetra: 5,
             asafi: 0,
             nbrMambraKilasy: null
         );
@@ -130,7 +127,6 @@ class RegistreTest extends TestCase
             batisaTami: 0,
             fanatitra: -1, // Negative
             createdAt: new DateTime(),
-            tongaRehetra: 5,
             asafi: 0,
             nbrMambraKilasy: null
         );
